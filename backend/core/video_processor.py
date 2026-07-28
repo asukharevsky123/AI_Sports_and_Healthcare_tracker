@@ -6,103 +6,104 @@ import cv2
 import numpy as np
 
 
-def _resize_preserving_aspect_ratio(
+def resize_preserving_aspect_ratio(
     frame: np.ndarray,
-    target_height: int = 512,
+    target_height: int,
 ) -> np.ndarray:
     """
-    Resize a frame without stretching the person's body proportions.
-
-    Uses area-averaging when shrinking (avoids aliasing that erodes
-    limb edges) and cubic interpolation when enlarging (sharper edges
-    than the default bilinear, which helps MediaPipe pick up a small
-    or low-resolution subject instead of a blurry blob).
+    Resize a frame while preserving its original proportions.
     """
+    if frame is None or frame.size == 0:
+        raise ValueError("The video contains an invalid frame.")
+
     height, width = frame.shape[:2]
 
     if height <= 0 or width <= 0:
-        raise ValueError("Invalid video frame dimensions")
+        raise ValueError("The video frame has invalid dimensions.")
 
     scale = target_height / float(height)
-    target_width = max(int(round(width * scale)), 1)
-
-    interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_CUBIC
+    target_width = max(
+        int(round(width * scale)),
+        1,
+    )
 
     return cv2.resize(
         frame,
         (target_width, target_height),
-        interpolation=interpolation,
+        interpolation=cv2.INTER_AREA,
     )
 
 
 def process_video(
     video_bytes: bytes,
-    target_fps: int = 10,
-    target_height: int = 512,
-    max_frames: int = 300,
+    target_fps: int = 3,
+    target_height: int = 256,
+    max_frames: int = 40,
 ) -> List[np.ndarray]:
     """
-    Decode video bytes and return sampled BGR frames.
+    Decode video bytes and return a limited number of resized frames.
+
+    The limits are intentionally conservative so the service can run
+    on a low-memory Render instance.
     """
     if not video_bytes:
         return []
 
-    temp_path = None
     frames: List[np.ndarray] = []
+    temporary_path = None
+    capture = None
 
     try:
         with tempfile.NamedTemporaryFile(
             delete=False,
             suffix=".mp4",
-        ) as temp:
-            temp.write(video_bytes)
-            temp_path = temp.name
+        ) as temporary_file:
+            temporary_file.write(video_bytes)
+            temporary_path = temporary_file.name
 
-        cap = cv2.VideoCapture(temp_path)
+        capture = cv2.VideoCapture(temporary_path)
 
-        if not cap.isOpened():
+        if not capture.isOpened():
             return []
 
-        fps = cap.get(cv2.CAP_PROP_FPS)
+        source_fps = capture.get(cv2.CAP_PROP_FPS)
 
-        if not fps or fps <= 0:
-            fps = 30.0
+        if not source_fps or source_fps <= 0:
+            source_fps = 30.0
 
         safe_target_fps = max(target_fps, 1)
 
         frame_skip = max(
-            int(round(fps / safe_target_fps)),
+            int(round(source_fps / safe_target_fps)),
             1,
         )
 
         frame_index = 0
 
-        while cap.isOpened() and len(frames) < max_frames:
-            success, frame = cap.read()
+        while len(frames) < max_frames:
+            success, frame = capture.read()
 
             if not success:
                 break
 
             if frame_index % frame_skip == 0:
-                try:
-                    resized_frame = _resize_preserving_aspect_ratio(
-                        frame,
-                        target_height,
-                    )
-                except ValueError:
-                    # A single corrupt/truncated frame shouldn't abort
-                    # detection for the rest of the clip.
-                    frame_index += 1
-                    continue
+                resized_frame = resize_preserving_aspect_ratio(
+                    frame,
+                    target_height,
+                )
 
                 frames.append(resized_frame)
 
             frame_index += 1
 
-        cap.release()
-
         return frames
 
     finally:
-        if temp_path and os.path.exists(temp_path):
-            os.remove(temp_path)
+        if capture is not None:
+            capture.release()
+
+        if temporary_path and os.path.exists(temporary_path):
+            try:
+                os.remove(temporary_path)
+            except OSError:
+                pass

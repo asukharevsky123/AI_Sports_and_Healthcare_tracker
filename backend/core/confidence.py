@@ -1,76 +1,68 @@
 from typing import Dict, List
 
-# Joints pose_service aliases to whichever side (left/right) was more
-# visible for the clip. Scoring these instead of every raw point means
-# an occluded, unused side (also present in the frame dict as its own
-# left_*/right_* entries) doesn't drag the confidence score down for
-# data nobody is actually going to use.
-_PRIMARY_JOINTS = {
-    "shoulder", "hip", "knee", "ankle", "elbow", "wrist", "foot_index",
-}
-
 
 def is_low_confidence(
     keypoints: List[Dict[str, list]],
-    min_average_visibility: float = 0.55,
-    max_empty_frame_ratio: float = 0.35,
-    max_low_visibility_ratio: float = 0.30,
+    minimum_average_visibility: float = 0.50,
+    maximum_empty_frame_ratio: float = 0.45,
+    maximum_low_visibility_ratio: float = 0.35,
 ) -> bool:
     """
-    Return True when pose landmarks are too unreliable
-    for rule-based movement analysis.
+    Determine whether pose data is reliable enough for angle analysis.
     """
     if not keypoints:
         return True
 
-    visibility_values = []
     empty_frames = 0
-    low_visibility_points = 0
+    visibility_values = []
+    low_visibility_count = 0
 
     for frame in keypoints:
         if not frame:
             empty_frames += 1
             continue
 
-        primary_points = {
-            name: point
-            for name, point in frame.items()
-            if name in _PRIMARY_JOINTS
-        }
-        relevant_points = primary_points or frame
-
-        for point in relevant_points.values():
-            if len(point) < 3:
-                low_visibility_points += 1
+        for point in frame.values():
+            if not point or len(point) < 3:
+                low_visibility_count += 1
                 continue
 
-            visibility = float(point[2])
+            try:
+                visibility = float(point[2])
+            except (TypeError, ValueError):
+                low_visibility_count += 1
+                continue
+
             visibility_values.append(visibility)
 
             if visibility < 0.20:
-                low_visibility_points += 1
+                low_visibility_count += 1
 
     if not visibility_values:
         return True
 
     average_visibility = (
-        sum(visibility_values) / len(visibility_values)
+        sum(visibility_values)
+        / len(visibility_values)
     )
 
     empty_frame_ratio = (
-        empty_frames / len(keypoints)
+        empty_frames
+        / max(len(keypoints), 1)
     )
 
-    total_points = (
-        len(visibility_values) + low_visibility_points
+    total_landmark_count = (
+        len(visibility_values)
+        + low_visibility_count
     )
 
     low_visibility_ratio = (
-        low_visibility_points / max(total_points, 1)
+        low_visibility_count
+        / max(total_landmark_count, 1)
     )
 
     return (
-        average_visibility < min_average_visibility
-        or empty_frame_ratio > max_empty_frame_ratio
-        or low_visibility_ratio > max_low_visibility_ratio
+        average_visibility < minimum_average_visibility
+        or empty_frame_ratio > maximum_empty_frame_ratio
+        or low_visibility_ratio > maximum_low_visibility_ratio
     )

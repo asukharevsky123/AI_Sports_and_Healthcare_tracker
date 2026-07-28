@@ -1,33 +1,30 @@
-from typing import Any, Dict, List
-
-import numpy as np
+from typing import Any, Dict
 
 
-def analyze_with_gemini(
-    frames: List[np.ndarray],
+def analyze_with_fallback(
+    frame_count: int,
     mode: str,
+    reason: str,
 ) -> Dict[str, Any]:
     """
-    Safe fallback response.
+    Return a safe fallback result when pose detection is unreliable.
 
-    This does not pretend that Gemini analyzed the video.
-    Replace this function with a real Gemini vision request
-    when the Gemini integration is configured.
+    This function does not claim that an external vision model analyzed
+    the video. It gives the user practical recording instructions.
     """
-    frame_count = len(frames)
-
     return {
         "mode": mode,
         "used_fallback": True,
         "issues": [],
         "feedback": (
-            "The pose could not be detected reliably in enough "
-            "video frames. Please use a full-body video with the "
-            "camera steady, good lighting, and the entire movement "
-            "visible from the side."
+            "The movement could not be analyzed reliably. "
+            "Record a short full-body video with the camera steady, "
+            "good lighting, and the entire movement visible. "
+            "A side view is usually best for squats and sprint form."
         ),
         "diagnostics": {
-            "frames_available": frame_count,
-            "fallback_provider": "local_message",
+            "frames_processed": frame_count,
+            "reason": reason,
+            "fallback_provider": "local",
         },
     }
