@@ -1,343 +1,722 @@
 <!DOCTYPE html>
-<html lang="en">
+
+<html class="dark" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Motion Analysis | Kinetic Logic</title>
 
-    <title>AI Sports and Healthcare Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-    <style>
-        * {
-            box-sizing: border-box;
+<link
+    href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800&amp;family=Geist:wght@400;600&amp;family=JetBrains+Mono:wght@600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet"
+/>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "surface-container-highest": "#303539",
+                    "surface-container-high": "#252b2e",
+                    "secondary-container": "#00b55d",
+                    "error": "#ffb4ab",
+                    "on-secondary-container": "#003e1c",
+                    "on-tertiary-container": "#811057",
+                    "surface": "#0f1418",
+                    "primary": "#8ed5ff",
+                    "secondary-fixed-dim": "#4de082",
+                    "outline-variant": "#3e484f",
+                    "outline": "#87929a",
+                    "tertiary-fixed": "#ffd8e7",
+                    "on-error": "#690005",
+                    "on-tertiary": "#620040",
+                    "secondary": "#4de082",
+                    "on-primary-fixed-variant": "#004c69",
+                    "surface-container": "#1b2024",
+                    "on-background": "#dee3e8",
+                    "inverse-on-surface": "#2c3135",
+                    "surface-bright": "#343a3e",
+                    "surface-tint": "#7bd0ff",
+                    "tertiary": "#ffb9d8",
+                    "on-primary": "#00354a",
+                    "on-surface-variant": "#bdc8d1",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary-fixed-variant": "#005227",
+                    "error-container": "#93000a",
+                    "primary-fixed-dim": "#7bd0ff",
+                    "on-secondary-fixed": "#00210c",
+                    "surface-variant": "#303539",
+                    "surface-container-low": "#171c20",
+                    "tertiary-container": "#ff8cc5",
+                    "primary-fixed": "#c4e7ff",
+                    "tertiary-fixed-dim": "#ffafd3",
+                    "inverse-primary": "#00668a",
+                    "on-primary-container": "#004965",
+                    "on-surface": "#dee3e8",
+                    "secondary-fixed": "#6dfe9c",
+                    "primary-container": "#38bdf8",
+                    "surface-dim": "#0f1418",
+                    "on-primary-fixed": "#001e2c",
+                    "surface-container-lowest": "#0a0f12",
+                    "on-tertiary-fixed-variant": "#85145a",
+                    "on-secondary": "#003919",
+                    "inverse-surface": "#dee3e8",
+                    "background": "#0f1418",
+                    "on-tertiary-fixed": "#3d0026"
+                },
+
+                borderRadius: {
+                    DEFAULT: "0.125rem",
+                    lg: "0.25rem",
+                    xl: "0.5rem",
+                    full: "0.75rem"
+                },
+
+                spacing: {
+                    xl: "64px",
+                    gutter: "20px",
+                    md: "24px",
+                    xs: "8px",
+                    "margin-desktop": "48px",
+                    sm: "16px",
+                    lg: "40px",
+                    "margin-mobile": "16px",
+                    base: "4px"
+                },
+
+                fontFamily: {
+                    "data-point": ["JetBrains Mono"],
+                    "display-lg": ["Anybody"],
+                    "headline-md": ["Anybody"],
+                    "label-caps": ["JetBrains Mono"],
+                    "body-lg": ["Geist"],
+                    "display-lg-mobile": ["Anybody"],
+                    "body-md": ["Geist"]
+                },
+
+                fontSize: {
+                    "data-point": [
+                        "20px",
+                        {
+                            lineHeight: "1",
+                            fontWeight: "700"
+                        }
+                    ],
+
+                    "display-lg": [
+                        "48px",
+                        {
+                            lineHeight: "1.1",
+                            letterSpacing: "-0.02em",
+                            fontWeight: "800"
+                        }
+                    ],
+
+                    "headline-md": [
+                        "24px",
+                        {
+                            lineHeight: "1.2",
+                            fontWeight: "700"
+                        }
+                    ],
+
+                    "label-caps": [
+                        "12px",
+                        {
+                            lineHeight: "1",
+                            letterSpacing: "0.1em",
+                            fontWeight: "600"
+                        }
+                    ],
+
+                    "body-lg": [
+                        "18px",
+                        {
+                            lineHeight: "1.6",
+                            fontWeight: "400"
+                        }
+                    ],
+
+                    "display-lg-mobile": [
+                        "32px",
+                        {
+                            lineHeight: "1.1",
+                            fontWeight: "800"
+                        }
+                    ],
+
+                    "body-md": [
+                        "16px",
+                        {
+                            lineHeight: "1.5",
+                            fontWeight: "400"
+                        }
+                    ]
+                }
+            }
         }
+    };
+</script>
 
-        body {
-            margin: 0;
-            padding: 30px 16px;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f8;
-            color: #1f2937;
-        }
+<style>
+    body {
+        background-color: #0f1418;
+        color: #dee3e8;
+        font-family: "Geist", sans-serif;
+        scroll-behavior: smooth;
+    }
 
-        .container {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
-        }
+    .hero-gradient {
+        background:
+            radial-gradient(
+                circle at 50% 50%,
+                rgba(56, 189, 248, 0.1) 0%,
+                transparent 70%
+            );
+    }
 
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
-        }
+    .glass-card {
+        background: rgba(27, 32, 36, 0.8);
+        backdrop-filter: blur(8px);
+        border: 1px solid #3e484f;
+    }
 
-        h1 {
-            margin-top: 0;
-            margin-bottom: 8px;
-            font-size: 30px;
-        }
+    #nlOutput h1,
+    #nlOutput h2,
+    #nlOutput h3 {
+        font-family: "Anybody", sans-serif;
+        color: #8ed5ff;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        font-weight: 700;
+    }
 
-        h2 {
-            margin-top: 0;
-            font-size: 21px;
-        }
+    #nlOutput h1 {
+        font-size: 1.5rem;
+    }
 
-        .subtitle {
-            color: #667085;
-            margin-top: 0;
-            margin-bottom: 24px;
-        }
+    #nlOutput h2 {
+        font-size: 1.25rem;
+    }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
+    #nlOutput ul,
+    #nlOutput ol {
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
 
-        select,
-        input[type="file"] {
-            width: 100%;
-            margin-bottom: 18px;
-            padding: 12px;
-            border: 1px solid #d0d5dd;
-            border-radius: 8px;
-            background: white;
-            font-size: 15px;
-        }
+    #nlOutput li {
+        margin-bottom: 0.5rem;
+    }
 
-        button {
-            width: 100%;
-            padding: 13px 18px;
-            border: none;
-            border-radius: 8px;
-            background: #2563eb;
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+    #nlOutput p {
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
 
-        button:hover:not(:disabled) {
-            background: #1d4ed8;
-        }
+    #nlOutput strong {
+        color: #4de082;
+    }
 
-        button:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-        }
+    .feature-card {
+        transition:
+            transform 0.2s ease,
+            border-color 0.2s ease;
+    }
 
-        #status {
-            margin-top: 16px;
-            padding: 12px;
-            border-radius: 8px;
-            display: none;
-        }
+    .feature-card:hover {
+        transform: translateY(-4px);
+        border-color: #8ed5ff;
+    }
 
-        #status.info {
-            display: block;
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        #status.success {
-            display: block;
-            background: #ecfdf3;
-            color: #027a48;
-        }
-
-        #status.error {
-            display: block;
-            background: #fef3f2;
-            color: #b42318;
-            white-space: pre-wrap;
-        }
-
-        #videoPreview {
-            display: none;
-            width: 100%;
-            max-height: 480px;
-            margin-top: 18px;
-            border-radius: 10px;
-            background: black;
-        }
-
-        .result-card {
-            display: none;
-        }
-
-        #feedbackOutput {
-            line-height: 1.6;
-            white-space: pre-wrap;
-        }
-
-        #jsonOutput {
-            margin: 0;
-            padding: 16px;
-            overflow-x: auto;
-            border-radius: 8px;
-            background: #111827;
-            color: #e5e7eb;
-            font-family: Consolas, Monaco, monospace;
-            font-size: 13px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .fallback-warning {
-            display: none;
-            margin-bottom: 16px;
-            padding: 12px;
-            border-radius: 8px;
-            background: #fffaeb;
-            color: #93370d;
-        }
-
-        .footer-note {
-            color: #667085;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-    </style>
+    input[type="file"]::file-selector-button {
+        background: #38bdf8;
+        color: #001e2c;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 16px;
+        font-weight: 600;
+    }
+</style>
 </head>
 
-<body>
-    <main class="container">
-        <section class="card">
-            <h1>AI Sports and Healthcare Tracker</h1>
+<body class="min-h-screen">
 
-            <p class="subtitle">
-                Upload a short full-body video to analyze movement form.
+<header
+    class="
+        border-b border-outline-variant
+        bg-surface/80 backdrop-blur-md
+        sticky top-0 z-50
+    "
+>
+    <div
+        class="
+            max-w-7xl mx-auto px-6 h-16
+            flex items-center justify-between
+        "
+    >
+        <div class="flex items-center gap-2">
+            <span
+                class="
+                    material-symbols-outlined
+                    text-primary text-3xl
+                "
+            >
+                insights
+            </span>
+
+            <span
+                class="
+                    font-display-lg
+                    text-xl font-bold tracking-tight
+                "
+            >
+                KINETIC<span class="text-primary">LOGIC</span>
+            </span>
+        </div>
+
+        <nav
+            class="
+                hidden md:flex
+                items-center gap-8
+                text-label-caps
+                uppercase tracking-widest text-sm
+            "
+        >
+            <a
+                class="hover:text-primary transition-colors"
+                href="#features"
+            >
+                Features
+            </a>
+
+            <a
+                class="hover:text-primary transition-colors"
+                href="#analyze"
+            >
+                Analyze
+            </a>
+        </nav>
+    </div>
+</header>
+
+<main>
+
+<section
+    class="
+        relative py-20 px-6
+        hero-gradient overflow-hidden
+    "
+>
+    <div class="max-w-4xl mx-auto text-center space-y-6">
+        <h1
+            class="
+                text-display-lg-mobile
+                md:text-display-lg
+                text-on-background
+            "
+        >
+            Precision Motion <br/>
+
+            <span class="text-primary">
+                Powered by AI
+            </span>
+        </h1>
+
+        <p
+            class="
+                text-body-lg
+                text-on-surface-variant
+                max-w-2xl mx-auto
+            "
+        >
+            Upload your performance video. Get instant, clinical-grade
+            feedback on biomechanics, injury risks, and performance
+            optimization using state-of-the-art computer vision.
+        </p>
+
+        <div class="pt-4">
+            <a
+                class="
+                    bg-primary hover:bg-primary/90
+                    text-on-primary
+                    px-8 py-3 rounded-full
+                    font-semibold transition-all
+                    inline-flex items-center gap-2
+                "
+                href="#analyze"
+            >
+                Start Analysis
+
+                <span class="material-symbols-outlined">
+                    arrow_forward
+                </span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section
+    class="py-20 px-6 max-w-7xl mx-auto"
+    id="features"
+>
+    <div class="text-center mb-12">
+        <h2 class="font-headline-md text-3xl mb-4">
+            Specialized Analysis Modules
+        </h2>
+
+        <p class="text-on-surface-variant">
+            Tailored intelligence for athletes, medical professionals,
+            and performance coaches.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div
+            class="
+                feature-card glass-card
+                p-8 rounded-xl space-y-4
+            "
+        >
+            <span
+                class="
+                    material-symbols-outlined
+                    text-primary text-4xl
+                "
+            >
+                directions_run
+            </span>
+
+            <h3 class="text-xl font-bold">
+                Sprint Mechanics
+            </h3>
+
+            <p class="text-body-md text-on-surface-variant">
+                Detailed form analysis focusing on stride length,
+                ground contact time, and torso angle to maximize
+                explosive power.
             </p>
+        </div>
 
-            <form id="analysisForm">
-                <label for="mode">
-                    Analysis type
-                </label>
+        <div
+            class="
+                feature-card glass-card
+                p-8 rounded-xl space-y-4
+            "
+        >
+            <span
+                class="
+                    material-symbols-outlined
+                    text-secondary text-4xl
+                "
+            >
+                sports_tennis
+            </span>
 
-                <select id="mode" name="mode" required>
-                    <option value="health">
-                        Health and posture
-                    </option>
+            <h3 class="text-xl font-bold">
+                Tennis Prevention
+            </h3>
 
-                    <option value="sprint">
-                        Sprint analysis
-                    </option>
+            <p class="text-body-md text-on-surface-variant">
+                Identify mechanical flaws in serves and swings that
+                lead to elbow and shoulder injuries before they happen.
+            </p>
+        </div>
 
-                    <option value="tennis">
-                        Tennis analysis
-                    </option>
-                </select>
+        <div
+            class="
+                feature-card glass-card
+                p-8 rounded-xl space-y-4
+            "
+        >
+            <span
+                class="
+                    material-symbols-outlined
+                    text-tertiary text-4xl
+                "
+            >
+                monitor_heart
+            </span>
 
-                <label for="videoInput">
-                    Select a video
-                </label>
+            <h3 class="text-xl font-bold">
+                Longevity &amp; Health
+            </h3>
 
-                <input
-                    id="videoInput"
-                    name="video"
-                    type="file"
-                    accept="video/mp4,video/quicktime,video/x-matroska,video/*"
-                    required
-                >
+            <p class="text-body-md text-on-surface-variant">
+                Osteoporosis prevention and gait stability analysis
+                designed for long-term mobility and skeletal health.
+            </p>
+        </div>
+    </div>
+</section>
 
-                <button id="analyzeButton" type="submit">
-                    Analyze Video
-                </button>
-            </form>
+<section
+    class="py-20 px-6 bg-surface-container-low"
+    id="analyze"
+>
+    <div class="max-w-4xl mx-auto">
+        <div
+            class="
+                glass-card
+                p-8 md:p-12
+                rounded-2xl shadow-2xl
+            "
+        >
+            <div class="mb-8 text-center">
+                <h2 class="font-headline-md text-2xl mb-2">
+                    Upload for Analysis
+                </h2>
 
-            <div id="status"></div>
-
-            <video
-                id="videoPreview"
-                controls
-                playsinline
-                muted
-            ></video>
-        </section>
-
-        <section id="feedbackCard" class="card result-card">
-            <h2>Analysis Feedback</h2>
-
-            <div id="fallbackWarning" class="fallback-warning">
-                Pose confidence was too low for full angle analysis.
-                The system returned recording guidance instead.
+                <p class="text-on-surface-variant">
+                    Select your focus area and upload a clear video.
+                </p>
             </div>
 
-            <div id="feedbackOutput"></div>
-        </section>
+            <div class="space-y-6">
+                <div>
+                    <label
+                        class="
+                            block text-label-caps
+                            mb-2 text-primary
+                        "
+                    >
+                        Analysis Mode
+                    </label>
 
-        <section id="jsonCard" class="card result-card">
-            <h2>Analysis Data</h2>
-            <pre id="jsonOutput">No analysis yet.</pre>
-        </section>
+                    <select
+                        id="mode"
+                        class="
+                            w-full
+                            bg-surface-container-highest
+                            border-outline
+                            rounded-lg p-3
+                            text-on-surface
+                            focus:ring-2
+                            focus:ring-primary
+                            focus:outline-none
+                            appearance-none
+                        "
+                    >
+                        <option value="sprint">
+                            Sprint Performance Analysis
+                        </option>
 
-        <section class="card">
-            <p class="footer-note">
-                For best results, use a short MP4 video with one person,
-                good lighting, a steady camera, and the entire body visible.
-                This tool provides movement feedback and is not a medical
-                diagnosis.
-            </p>
-        </section>
-    </main>
+                        <option value="tennis">
+                            Tennis Injury Prevention
+                        </option>
 
-    <script>
-        const analysisForm =
-            document.getElementById("analysisForm");
+                        <option value="health">
+                            General Health &amp; Bone Density
+                        </option>
+                    </select>
+                </div>
 
-        const videoInput =
-            document.getElementById("videoInput");
+                <div>
+                    <label
+                        class="
+                            block text-label-caps
+                            mb-2 text-primary
+                        "
+                    >
+                        Media Selection
+                    </label>
 
-        const videoPreview =
-            document.getElementById("videoPreview");
+                    <div
+                        class="
+                            border-2 border-dashed
+                            border-outline-variant
+                            rounded-xl p-8 text-center
+                            hover:border-primary
+                            transition-colors
+                            cursor-pointer group
+                        "
+                    >
+                        <input
+                            id="fileInput"
+                            type="file"
+                            accept="video/*,.mp4,.mov,.mkv,.avi"
+                            class="w-full"
+                        />
 
-        const analyzeButton =
-            document.getElementById("analyzeButton");
+                        <p
+                            class="
+                                mt-4 text-sm
+                                text-on-surface-variant
+                            "
+                        >
+                            MP4, MOV, MKV, or AVI supported
+                        </p>
+                    </div>
+                </div>
 
-        const statusElement =
-            document.getElementById("status");
+                <video
+                    id="preview"
+                    controls
+                    playsinline
+                    style="
+                        display: none;
+                        width: 100%;
+                        max-width: 640px;
+                        margin: 24px auto;
+                        border-radius: 12px;
+                        box-shadow:
+                            0 10px 15px -3px
+                            rgba(0, 0, 0, 0.3);
+                        border: 2px solid #3e484f;
+                    "
+                ></video>
 
-        const feedbackCard =
-            document.getElementById("feedbackCard");
+                <button
+                    id="analyzeButton"
+                    type="button"
+                    class="
+                        w-full
+                        bg-secondary-fixed-dim
+                        hover:bg-secondary
+                        text-on-secondary-fixed
+                        py-4 rounded-lg
+                        font-bold text-lg
+                        transition-all
+                        flex items-center
+                        justify-center gap-2
+                    "
+                    onclick="analyze()"
+                >
+                    <span class="material-symbols-outlined">
+                        analytics
+                    </span>
 
-        const jsonCard =
-            document.getElementById("jsonCard");
+                    Run AI Analysis
+                </button>
+            </div>
+        </div>
 
-        const feedbackOutput =
-            document.getElementById("feedbackOutput");
+        <div class="results mt-12 space-y-8">
+            <div
+                id="resultsContainer"
+                class="
+                    glass-card
+                    p-8 rounded-2xl hidden
+                "
+            >
+                <h2
+                    class="
+                        font-headline-md text-2xl
+                        mb-6 border-b
+                        border-outline-variant
+                        pb-4 flex items-center gap-2
+                    "
+                >
+                    <span
+                        class="
+                            material-symbols-outlined
+                            text-primary
+                        "
+                    >
+                        summarize
+                    </span>
 
-        const jsonOutput =
-            document.getElementById("jsonOutput");
+                    Clinical Feedback
+                </h2>
 
-        const fallbackWarning =
-            document.getElementById("fallbackWarning");
+                <div
+                    id="nlOutput"
+                    class="
+                        text-on-surface
+                        bg-surface-container/50
+                        p-6 rounded-xl
+                        border border-outline-variant/30
+                    "
+                >
+                </div>
 
-        let previewUrl = null;
+                <div class="mt-12">
+                    <h2
+                        class="
+                            font-headline-md text-xl
+                            mb-4 text-on-surface-variant
+                            flex items-center gap-2
+                        "
+                    >
+                        <span
+                            class="
+                                material-symbols-outlined
+                                text-sm
+                            "
+                        >
+                            code
+                        </span>
+
+                        Raw Kinematic Data
+                    </h2>
+
+                    <pre
+                        id="jsonOutput"
+                        class="
+                            bg-surface-container-lowest
+                            text-primary-fixed-dim
+                            p-6 rounded-xl
+                            overflow-x-auto
+                            text-xs font-data-point
+                            border
+                            border-outline-variant/20
+                        "
+                    ></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<footer
+    class="
+        py-12
+        border-t border-outline-variant
+        text-center
+        text-on-surface-variant
+        bg-surface
+    "
+>
+    <div class="max-w-7xl mx-auto px-6">
+        <p class="text-sm">
+            © 2024 Kinetic Logic Motion Systems.
+            All rights reserved.
+        </p>
+    </div>
+</footer>
+
+<script>
+    const fileInput =
+        document.getElementById("fileInput");
+
+    const preview =
+        document.getElementById("preview");
+
+    const resultsContainer =
+        document.getElementById("resultsContainer");
+
+    const analyzeButton =
+        document.getElementById("analyzeButton");
+
+    let previewUrl = null;
 
 
-        function setStatus(message, type) {
-            statusElement.textContent = message;
-            statusElement.className = type;
-        }
+    fileInput.addEventListener(
+        "change",
+        function (event) {
+            const file = event.target.files[0];
 
-
-        function clearStatus() {
-            statusElement.textContent = "";
-            statusElement.className = "";
-        }
-
-
-        function setLoading(isLoading) {
-            analyzeButton.disabled = isLoading;
-
-            analyzeButton.textContent = isLoading
-                ? "Analyzing..."
-                : "Analyze Video";
-        }
-
-
-        function resetResults() {
-            feedbackCard.style.display = "none";
-            jsonCard.style.display = "none";
-            fallbackWarning.style.display = "none";
-            feedbackOutput.textContent = "";
-            jsonOutput.textContent = "No analysis yet.";
-        }
-
-
-        function showError(message) {
-            setStatus(message, "error");
-
-            feedbackCard.style.display = "block";
-            jsonCard.style.display = "block";
-
-            feedbackOutput.textContent =
-                `Analysis failed: ${message}`;
-
-            jsonOutput.textContent = JSON.stringify(
-                {
-                    error: message
-                },
-                null,
-                2
-            );
-        }
-
-
-        videoInput.addEventListener("change", function () {
-            clearStatus();
-            resetResults();
-
-            const selectedFile = videoInput.files[0];
-
-            if (!selectedFile) {
-                videoPreview.style.display = "none";
+            if (!file) {
+                preview.style.display = "none";
                 return;
             }
 
@@ -345,187 +724,205 @@
                 URL.revokeObjectURL(previewUrl);
             }
 
-            previewUrl = URL.createObjectURL(selectedFile);
-            videoPreview.src = previewUrl;
-            videoPreview.style.display = "block";
-        });
+            previewUrl = URL.createObjectURL(file);
+
+            preview.src = previewUrl;
+            preview.style.display = "block";
+
+            preview.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+        }
+    );
 
 
-        analysisForm.addEventListener(
-            "submit",
-            async function (event) {
-                event.preventDefault();
+    async function analyze() {
+        const mode =
+            document.getElementById("mode").value;
 
-                resetResults();
-                clearStatus();
+        const nlOutput =
+            document.getElementById("nlOutput");
 
-                const selectedFile =
-                    videoInput.files[0];
+        const jsonOutput =
+            document.getElementById("jsonOutput");
 
-                const selectedMode =
-                    document.getElementById("mode").value;
+        const selectedFile =
+            fileInput.files[0];
 
-                if (!selectedFile) {
-                    showError("Please select a video.");
-                    return;
+        if (!selectedFile) {
+            alert("Please select a file first.");
+            return;
+        }
+
+        const maximumFileSize =
+            100 * 1024 * 1024;
+
+        if (selectedFile.size > maximumFileSize) {
+            alert(
+                "The video is larger than 100 MB. " +
+                "Please upload a shorter or smaller video."
+            );
+
+            return;
+        }
+
+        const originalButtonHtml =
+            analyzeButton.innerHTML;
+
+        analyzeButton.disabled = true;
+
+        analyzeButton.classList.add(
+            "opacity-60",
+            "cursor-not-allowed"
+        );
+
+        analyzeButton.innerHTML =
+            '<span class="material-symbols-outlined animate-spin">' +
+            "sync" +
+            "</span> Analyzing...";
+
+        resultsContainer.classList.remove("hidden");
+
+        nlOutput.innerHTML =
+            '<div class="flex items-center gap-3 ' +
+            'text-primary animate-pulse">' +
+            '<span class="material-symbols-outlined ' +
+            'animate-spin">sync</span>' +
+            "Processing motion vectors..." +
+            "</div>";
+
+        jsonOutput.innerText = "";
+
+        const formData = new FormData();
+
+        formData.append(
+            "video",
+            selectedFile,
+            selectedFile.name
+        );
+
+        try {
+            const response = await fetch(
+                `/analyze?mode=${encodeURIComponent(mode)}`,
+                {
+                    method: "POST",
+                    body: formData
                 }
+            );
 
-                const maximumSize =
-                    100 * 1024 * 1024;
+            const rawResponse =
+                await response.text();
 
-                if (selectedFile.size > maximumSize) {
-                    showError(
-                        "The video is larger than 100 MB. " +
-                        "Please upload a shorter or smaller video."
-                    );
+            let data = {};
 
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append(
-                    "video",
-                    selectedFile,
-                    selectedFile.name
-                );
-
-                setLoading(true);
-
-                setStatus(
-                    "Uploading and analyzing the video...",
-                    "info"
-                );
-
+            if (rawResponse) {
                 try {
-                    const requestUrl =
-                        `/analyze?mode=${encodeURIComponent(
-                            selectedMode
-                        )}`;
-
-                    console.log(
-                        "Sending analysis request:",
-                        requestUrl
-                    );
-
-                    const response = await fetch(
-                        requestUrl,
-                        {
-                            method: "POST",
-                            body: formData
-                        }
-                    );
-
-                    const rawResponse =
-                        await response.text();
-
-                    console.log(
-                        "Response status:",
-                        response.status
-                    );
-
-                    console.log(
-                        "Raw response:",
-                        rawResponse
-                    );
-
-                    let data = {};
-
-                    if (rawResponse) {
-                        try {
-                            data = JSON.parse(rawResponse);
-                        } catch {
-                            data = {
-                                detail: rawResponse
-                            };
-                        }
-                    }
-
-                    if (!response.ok) {
-                        const serverMessage =
-                            data.detail ||
-                            data.message ||
-                            `Server returned ${response.status} ${response.statusText}`;
-
-                        throw new Error(serverMessage);
-                    }
-
-                    const analysisResult =
-                        data.json ?? data;
-
-                    const feedback =
-                        data.natural_language ??
-                        analysisResult.feedback ??
-                        "Analysis completed.";
-
-                    feedbackOutput.textContent =
-                        feedback;
-
-                    jsonOutput.textContent =
-                        JSON.stringify(
-                            analysisResult,
-                            null,
-                            2
-                        );
-
-                    feedbackCard.style.display =
-                        "block";
-
-                    jsonCard.style.display =
-                        "block";
-
-                    const usedFallback =
-                        data.used_fallback === true ||
-                        analysisResult.used_fallback === true;
-
-                    fallbackWarning.style.display =
-                        usedFallback
-                            ? "block"
-                            : "none";
-
-                    setStatus(
-                        usedFallback
-                            ? "Analysis completed with limited pose confidence."
-                            : "Analysis completed successfully.",
-                        "success"
-                    );
-
-                } catch (error) {
-                    console.error(
-                        "Full analysis error:",
-                        error
-                    );
-
-                    let message =
-                        "Unknown analysis error.";
-
-                    if (error instanceof TypeError) {
-                        message =
-                            "The browser could not connect to the server. " +
-                            "The Render service may have stopped, restarted, " +
-                            "or timed out.";
-                    } else if (error instanceof Error) {
-                        message = error.message;
-                    } else {
-                        message = String(error);
-                    }
-
-                    showError(message);
-
-                } finally {
-                    setLoading(false);
+                    data = JSON.parse(rawResponse);
+                } catch {
+                    data = {
+                        detail: rawResponse
+                    };
                 }
             }
-        );
 
-
-        window.addEventListener(
-            "beforeunload",
-            function () {
-                if (previewUrl) {
-                    URL.revokeObjectURL(previewUrl);
-                }
+            if (!response.ok) {
+                throw new Error(
+                    data.detail ||
+                    data.message ||
+                    `Server returned ${response.status} ${response.statusText}`
+                );
             }
-        );
-    </script>
+
+            const analysisData =
+                data.json ?? data;
+
+            const naturalLanguage =
+                data.natural_language ??
+                analysisData.feedback ??
+                "No feedback generated.";
+
+            nlOutput.innerHTML =
+                marked.parse(
+                    String(naturalLanguage)
+                );
+
+            jsonOutput.innerText =
+                JSON.stringify(
+                    analysisData,
+                    null,
+                    2
+                );
+
+            resultsContainer.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        } catch (error) {
+            console.error(
+                "Full analysis error:",
+                error
+            );
+
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : String(error);
+
+            nlOutput.innerHTML =
+                '<div class="text-error space-y-2">' +
+                '<p class="font-semibold">Analysis failed</p>' +
+                `<p>${escapeHtml(message)}</p>` +
+                "</div>";
+
+            jsonOutput.innerText =
+                JSON.stringify(
+                    {
+                        error: message
+                    },
+                    null,
+                    2
+                );
+
+            resultsContainer.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        } finally {
+            analyzeButton.disabled = false;
+
+            analyzeButton.classList.remove(
+                "opacity-60",
+                "cursor-not-allowed"
+            );
+
+            analyzeButton.innerHTML =
+                originalButtonHtml;
+        }
+    }
+
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+
+    window.addEventListener(
+        "beforeunload",
+        function () {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        }
+    );
+</script>
+
 </body>
 </html>
