@@ -1,250 +1,254 @@
 <!DOCTYPE html>
-
 <html class="dark" lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>AI Motion Analysis | Kinetic Logic</title>
+    <meta charset="utf-8"/>
 
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <meta
+        content="width=device-width, initial-scale=1.0"
+        name="viewport"
+    />
 
-<link
-    href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800&amp;family=Geist:wght@400;600&amp;family=JetBrains+Mono:wght@600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-    rel="stylesheet"
-/>
+    <title>AI Motion Analysis | Kinetic Logic</title>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-<script id="tailwind-config">
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                colors: {
-                    "surface-container-highest": "#303539",
-                    "surface-container-high": "#252b2e",
-                    "secondary-container": "#00b55d",
-                    "error": "#ffb4ab",
-                    "on-secondary-container": "#003e1c",
-                    "on-tertiary-container": "#811057",
-                    "surface": "#0f1418",
-                    "primary": "#8ed5ff",
-                    "secondary-fixed-dim": "#4de082",
-                    "outline-variant": "#3e484f",
-                    "outline": "#87929a",
-                    "tertiary-fixed": "#ffd8e7",
-                    "on-error": "#690005",
-                    "on-tertiary": "#620040",
-                    "secondary": "#4de082",
-                    "on-primary-fixed-variant": "#004c69",
-                    "surface-container": "#1b2024",
-                    "on-background": "#dee3e8",
-                    "inverse-on-surface": "#2c3135",
-                    "surface-bright": "#343a3e",
-                    "surface-tint": "#7bd0ff",
-                    "tertiary": "#ffb9d8",
-                    "on-primary": "#00354a",
-                    "on-surface-variant": "#bdc8d1",
-                    "on-error-container": "#ffdad6",
-                    "on-secondary-fixed-variant": "#005227",
-                    "error-container": "#93000a",
-                    "primary-fixed-dim": "#7bd0ff",
-                    "on-secondary-fixed": "#00210c",
-                    "surface-variant": "#303539",
-                    "surface-container-low": "#171c20",
-                    "tertiary-container": "#ff8cc5",
-                    "primary-fixed": "#c4e7ff",
-                    "tertiary-fixed-dim": "#ffafd3",
-                    "inverse-primary": "#00668a",
-                    "on-primary-container": "#004965",
-                    "on-surface": "#dee3e8",
-                    "secondary-fixed": "#6dfe9c",
-                    "primary-container": "#38bdf8",
-                    "surface-dim": "#0f1418",
-                    "on-primary-fixed": "#001e2c",
-                    "surface-container-lowest": "#0a0f12",
-                    "on-tertiary-fixed-variant": "#85145a",
-                    "on-secondary": "#003919",
-                    "inverse-surface": "#dee3e8",
-                    "background": "#0f1418",
-                    "on-tertiary-fixed": "#3d0026"
-                },
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800&amp;family=Geist:wght@400;600&amp;family=JetBrains+Mono:wght@600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet"
+    />
 
-                borderRadius: {
-                    DEFAULT: "0.125rem",
-                    lg: "0.25rem",
-                    xl: "0.5rem",
-                    full: "0.75rem"
-                },
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-                spacing: {
-                    xl: "64px",
-                    gutter: "20px",
-                    md: "24px",
-                    xs: "8px",
-                    "margin-desktop": "48px",
-                    sm: "16px",
-                    lg: "40px",
-                    "margin-mobile": "16px",
-                    base: "4px"
-                },
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-highest": "#303539",
+                        "surface-container-high": "#252b2e",
+                        "secondary-container": "#00b55d",
+                        "error": "#ffb4ab",
+                        "on-secondary-container": "#003e1c",
+                        "on-tertiary-container": "#811057",
+                        "surface": "#0f1418",
+                        "primary": "#8ed5ff",
+                        "secondary-fixed-dim": "#4de082",
+                        "outline-variant": "#3e484f",
+                        "outline": "#87929a",
+                        "tertiary-fixed": "#ffd8e7",
+                        "on-error": "#690005",
+                        "on-tertiary": "#620040",
+                        "secondary": "#4de082",
+                        "on-primary-fixed-variant": "#004c69",
+                        "surface-container": "#1b2024",
+                        "on-background": "#dee3e8",
+                        "inverse-on-surface": "#2c3135",
+                        "surface-bright": "#343a3e",
+                        "surface-tint": "#7bd0ff",
+                        "tertiary": "#ffb9d8",
+                        "on-primary": "#00354a",
+                        "on-surface-variant": "#bdc8d1",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#005227",
+                        "error-container": "#93000a",
+                        "primary-fixed-dim": "#7bd0ff",
+                        "on-secondary-fixed": "#00210c",
+                        "surface-variant": "#303539",
+                        "surface-container-low": "#171c20",
+                        "tertiary-container": "#ff8cc5",
+                        "primary-fixed": "#c4e7ff",
+                        "tertiary-fixed-dim": "#ffafd3",
+                        "inverse-primary": "#00668a",
+                        "on-primary-container": "#004965",
+                        "on-surface": "#dee3e8",
+                        "secondary-fixed": "#6dfe9c",
+                        "primary-container": "#38bdf8",
+                        "surface-dim": "#0f1418",
+                        "on-primary-fixed": "#001e2c",
+                        "surface-container-lowest": "#0a0f12",
+                        "on-tertiary-fixed-variant": "#85145a",
+                        "on-secondary": "#003919",
+                        "inverse-surface": "#dee3e8",
+                        "background": "#0f1418",
+                        "on-tertiary-fixed": "#3d0026"
+                    },
 
-                fontFamily: {
-                    "data-point": ["JetBrains Mono"],
-                    "display-lg": ["Anybody"],
-                    "headline-md": ["Anybody"],
-                    "label-caps": ["JetBrains Mono"],
-                    "body-lg": ["Geist"],
-                    "display-lg-mobile": ["Anybody"],
-                    "body-md": ["Geist"]
-                },
+                    borderRadius: {
+                        DEFAULT: "0.125rem",
+                        lg: "0.25rem",
+                        xl: "0.5rem",
+                        full: "0.75rem"
+                    },
 
-                fontSize: {
-                    "data-point": [
-                        "20px",
-                        {
-                            lineHeight: "1",
-                            fontWeight: "700"
-                        }
-                    ],
+                    spacing: {
+                        xl: "64px",
+                        gutter: "20px",
+                        md: "24px",
+                        xs: "8px",
+                        "margin-desktop": "48px",
+                        sm: "16px",
+                        lg: "40px",
+                        "margin-mobile": "16px",
+                        base: "4px"
+                    },
 
-                    "display-lg": [
-                        "48px",
-                        {
-                            lineHeight: "1.1",
-                            letterSpacing: "-0.02em",
-                            fontWeight: "800"
-                        }
-                    ],
+                    fontFamily: {
+                        "data-point": ["JetBrains Mono"],
+                        "display-lg": ["Anybody"],
+                        "headline-md": ["Anybody"],
+                        "label-caps": ["JetBrains Mono"],
+                        "body-lg": ["Geist"],
+                        "display-lg-mobile": ["Anybody"],
+                        "body-md": ["Geist"]
+                    },
 
-                    "headline-md": [
-                        "24px",
-                        {
-                            lineHeight: "1.2",
-                            fontWeight: "700"
-                        }
-                    ],
+                    fontSize: {
+                        "data-point": [
+                            "20px",
+                            {
+                                lineHeight: "1",
+                                fontWeight: "700"
+                            }
+                        ],
 
-                    "label-caps": [
-                        "12px",
-                        {
-                            lineHeight: "1",
-                            letterSpacing: "0.1em",
-                            fontWeight: "600"
-                        }
-                    ],
+                        "display-lg": [
+                            "48px",
+                            {
+                                lineHeight: "1.1",
+                                letterSpacing: "-0.02em",
+                                fontWeight: "800"
+                            }
+                        ],
 
-                    "body-lg": [
-                        "18px",
-                        {
-                            lineHeight: "1.6",
-                            fontWeight: "400"
-                        }
-                    ],
+                        "headline-md": [
+                            "24px",
+                            {
+                                lineHeight: "1.2",
+                                fontWeight: "700"
+                            }
+                        ],
 
-                    "display-lg-mobile": [
-                        "32px",
-                        {
-                            lineHeight: "1.1",
-                            fontWeight: "800"
-                        }
-                    ],
+                        "label-caps": [
+                            "12px",
+                            {
+                                lineHeight: "1",
+                                letterSpacing: "0.1em",
+                                fontWeight: "600"
+                            }
+                        ],
 
-                    "body-md": [
-                        "16px",
-                        {
-                            lineHeight: "1.5",
-                            fontWeight: "400"
-                        }
-                    ]
+                        "body-lg": [
+                            "18px",
+                            {
+                                lineHeight: "1.6",
+                                fontWeight: "400"
+                            }
+                        ],
+
+                        "display-lg-mobile": [
+                            "32px",
+                            {
+                                lineHeight: "1.1",
+                                fontWeight: "800"
+                            }
+                        ],
+
+                        "body-md": [
+                            "16px",
+                            {
+                                lineHeight: "1.5",
+                                fontWeight: "400"
+                            }
+                        ]
+                    }
                 }
             }
+        };
+    </script>
+
+    <style>
+        body {
+            background-color: #0f1418;
+            color: #dee3e8;
+            font-family: "Geist", sans-serif;
+            scroll-behavior: smooth;
         }
-    };
-</script>
 
-<style>
-    body {
-        background-color: #0f1418;
-        color: #dee3e8;
-        font-family: "Geist", sans-serif;
-        scroll-behavior: smooth;
-    }
+        .hero-gradient {
+            background:
+                radial-gradient(
+                    circle at 50% 50%,
+                    rgba(56, 189, 248, 0.1) 0%,
+                    transparent 70%
+                );
+        }
 
-    .hero-gradient {
-        background:
-            radial-gradient(
-                circle at 50% 50%,
-                rgba(56, 189, 248, 0.1) 0%,
-                transparent 70%
-            );
-    }
+        .glass-card {
+            background: rgba(27, 32, 36, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #3e484f;
+        }
 
-    .glass-card {
-        background: rgba(27, 32, 36, 0.8);
-        backdrop-filter: blur(8px);
-        border: 1px solid #3e484f;
-    }
+        #nlOutput h1,
+        #nlOutput h2,
+        #nlOutput h3 {
+            font-family: "Anybody", sans-serif;
+            color: #8ed5ff;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+        }
 
-    #nlOutput h1,
-    #nlOutput h2,
-    #nlOutput h3 {
-        font-family: "Anybody", sans-serif;
-        color: #8ed5ff;
-        margin-top: 1.5rem;
-        margin-bottom: 0.75rem;
-        font-weight: 700;
-    }
+        #nlOutput h1 {
+            font-size: 1.5rem;
+        }
 
-    #nlOutput h1 {
-        font-size: 1.5rem;
-    }
+        #nlOutput h2 {
+            font-size: 1.25rem;
+        }
 
-    #nlOutput h2 {
-        font-size: 1.25rem;
-    }
+        #nlOutput ul,
+        #nlOutput ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
 
-    #nlOutput ul,
-    #nlOutput ol {
-        padding-left: 1.5rem;
-        margin-bottom: 1rem;
-    }
+        #nlOutput li {
+            margin-bottom: 0.5rem;
+        }
 
-    #nlOutput li {
-        margin-bottom: 0.5rem;
-    }
+        #nlOutput p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
 
-    #nlOutput p {
-        margin-bottom: 1rem;
-        line-height: 1.6;
-    }
+        #nlOutput strong {
+            color: #4de082;
+        }
 
-    #nlOutput strong {
-        color: #4de082;
-    }
+        .feature-card {
+            transition:
+                transform 0.2s ease,
+                border-color 0.2s ease;
+        }
 
-    .feature-card {
-        transition:
-            transform 0.2s ease,
-            border-color 0.2s ease;
-    }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: #8ed5ff;
+        }
 
-    .feature-card:hover {
-        transform: translateY(-4px);
-        border-color: #8ed5ff;
-    }
-
-    input[type="file"]::file-selector-button {
-        background: #38bdf8;
-        color: #001e2c;
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-right: 16px;
-        font-weight: 600;
-    }
-</style>
+        input[type="file"]::file-selector-button {
+            background: #38bdf8;
+            color: #001e2c;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 16px;
+            font-weight: 600;
+        }
+    </style>
 </head>
 
 <body class="min-h-screen">
@@ -606,25 +610,63 @@
                     p-8 rounded-2xl hidden
                 "
             >
-                <h2
+                <div
                     class="
-                        font-headline-md text-2xl
-                        mb-6 border-b
-                        border-outline-variant
-                        pb-4 flex items-center gap-2
+                        mb-6 border-b border-outline-variant
+                        pb-4 flex flex-col gap-4
+                        sm:flex-row sm:items-center
+                        sm:justify-between
                     "
                 >
-                    <span
+                    <h2
                         class="
-                            material-symbols-outlined
-                            text-primary
+                            font-headline-md text-2xl
+                            flex items-center gap-2
                         "
                     >
-                        summarize
-                    </span>
+                        <span
+                            class="
+                                material-symbols-outlined
+                                text-primary
+                            "
+                        >
+                            summarize
+                        </span>
 
-                    Clinical Feedback
-                </h2>
+                        Clinical Feedback
+                    </h2>
+
+                    <button
+                        id="speechButton"
+                        type="button"
+                        class="
+                            hidden
+                            items-center justify-center gap-2
+                            rounded-lg
+                            border border-primary/40
+                            bg-primary/10
+                            px-4 py-2
+                            text-sm font-semibold
+                            text-primary
+                            transition-all
+                            hover:bg-primary/20
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
+                        onclick="toggleSpeech()"
+                    >
+                        <span
+                            id="speechIcon"
+                            class="material-symbols-outlined"
+                        >
+                            volume_up
+                        </span>
+
+                        <span id="speechButtonText">
+                            Listen
+                        </span>
+                    </button>
+                </div>
 
                 <div
                     id="nlOutput"
@@ -688,7 +730,7 @@
 >
     <div class="max-w-7xl mx-auto px-6">
         <p class="text-sm">
-            © 2024 Kinetic Logic Motion Systems.
+            © 2026 Kinetic Logic Motion Systems.
             All rights reserved.
         </p>
     </div>
@@ -707,13 +749,28 @@
     const analyzeButton =
         document.getElementById("analyzeButton");
 
+    const speechButton =
+        document.getElementById("speechButton");
+
+    const speechButtonText =
+        document.getElementById("speechButtonText");
+
+    const speechIcon =
+        document.getElementById("speechIcon");
+
     let previewUrl = null;
+    let activeSpeech = null;
 
 
     fileInput.addEventListener(
         "change",
         function (event) {
             const file = event.target.files[0];
+
+            stopSpeech();
+
+            speechButton.classList.add("hidden");
+            speechButton.classList.remove("flex");
 
             if (!file) {
                 preview.style.display = "none";
@@ -737,7 +794,143 @@
     );
 
 
+    function getFeedbackText() {
+        const nlOutput =
+            document.getElementById("nlOutput");
+
+        return nlOutput.innerText
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+
+    function resetSpeechButton() {
+        activeSpeech = null;
+
+        speechButtonText.textContent = "Listen";
+        speechIcon.textContent = "volume_up";
+    }
+
+
+    function stopSpeech() {
+        if ("speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+        }
+
+        resetSpeechButton();
+    }
+
+
+    function chooseEnglishVoice() {
+        const voices =
+            window.speechSynthesis.getVoices();
+
+        return (
+            voices.find(
+                (voice) =>
+                    voice.lang === "en-US" &&
+                    voice.localService
+            ) ||
+            voices.find(
+                (voice) =>
+                    voice.lang === "en-US"
+            ) ||
+            voices.find(
+                (voice) =>
+                    voice.lang.startsWith("en")
+            ) ||
+            null
+        );
+    }
+
+
+    function toggleSpeech() {
+        if (!("speechSynthesis" in window)) {
+            alert(
+                "Text-to-speech is not supported by this browser."
+            );
+
+            return;
+        }
+
+        if (
+            window.speechSynthesis.speaking &&
+            !window.speechSynthesis.paused
+        ) {
+            window.speechSynthesis.pause();
+
+            speechButtonText.textContent = "Resume";
+            speechIcon.textContent = "play_arrow";
+
+            return;
+        }
+
+        if (
+            window.speechSynthesis.speaking &&
+            window.speechSynthesis.paused
+        ) {
+            window.speechSynthesis.resume();
+
+            speechButtonText.textContent = "Pause";
+            speechIcon.textContent = "pause";
+
+            return;
+        }
+
+        const feedbackText = getFeedbackText();
+
+        if (!feedbackText) {
+            alert("There is no feedback to read yet.");
+            return;
+        }
+
+        stopSpeech();
+
+        activeSpeech =
+            new SpeechSynthesisUtterance(feedbackText);
+
+        activeSpeech.lang = "en-US";
+        activeSpeech.rate = 0.95;
+        activeSpeech.pitch = 1;
+        activeSpeech.volume = 1;
+
+        const selectedVoice =
+            chooseEnglishVoice();
+
+        if (selectedVoice) {
+            activeSpeech.voice = selectedVoice;
+        }
+
+        activeSpeech.onstart = function () {
+            speechButtonText.textContent = "Pause";
+            speechIcon.textContent = "pause";
+        };
+
+        activeSpeech.onend = function () {
+            resetSpeechButton();
+        };
+
+        activeSpeech.onerror = function (event) {
+            if (event.error !== "canceled") {
+                console.error(
+                    "Text-to-speech error:",
+                    event.error
+                );
+            }
+
+            resetSpeechButton();
+        };
+
+        window.speechSynthesis.speak(activeSpeech);
+    }
+
+
     async function analyze() {
+        stopSpeech();
+
+        speechButton.classList.add("hidden");
+        speechButton.classList.remove("flex");
+
         const mode =
             document.getElementById("mode").value;
 
@@ -854,12 +1047,20 @@
                     2
                 );
 
+            speechButton.classList.remove("hidden");
+            speechButton.classList.add("flex");
+
             resultsContainer.scrollIntoView({
                 behavior: "smooth",
                 block: "start"
             });
 
         } catch (error) {
+            stopSpeech();
+
+            speechButton.classList.add("hidden");
+            speechButton.classList.remove("flex");
+
             console.error(
                 "Full analysis error:",
                 error
@@ -917,6 +1118,8 @@
     window.addEventListener(
         "beforeunload",
         function () {
+            stopSpeech();
+
             if (previewUrl) {
                 URL.revokeObjectURL(previewUrl);
             }
