@@ -1,178 +1,182 @@
-import io
+import base64
 import os
-import json
-import logging
 from typing import Any, Dict, List
+
+import cv2
 import numpy as np
-from PIL import Image
+import requests
 
-# Import the Google GenAI SDK
-from google import genai
-from google.genai import types
 
-logger = logging.getLogger(__name__)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-def _convert_frames_to_pil_bytes(frames: List[np.ndarray], max_frames: int = 10) -> List[bytes]:
+
+def _encode_frame(frame: np.ndarray) -> str:
     """
-    Sub-samples frames evenly across the video sequence and encodes them to JPEG bytes.
+    Convert an OpenCV BGR frame into a base64 JPEG string.
     """
-    if not frames:
-        return []
+    if frame is None or frame.size == 0:
+        raise ValueError("Cannot encode an empty frame.")
 
-    # Evenly sample frames up to max_frames to reduce token payload and API latency
-    total_frames = len(frames)
-    indices = np.linspace(0, total_frames - 1, min(total_frames, max_frames), dtype=int)
-    
-    encoded_bytes = []
-    for idx in indices:
-        frame = frames[idx]
-        if frame is None or frame.size == 0:
-            continue
-            
-        # Convert BGR (OpenCV format) to RGB for PIL
-        if len(frame.shape) == 3 and frame.shape[2] == 3:
-            rgb_frame = frame[:, :, ::-1]
-        else:
-            rgb_frame = frame
+    success, encoded_image = cv2.imencode(
+        ".jpg",
+        frame,
+        [cv2.IMWRITE_JPEG_QUALITY, 75],
+    )
 
-        img = Image.fromarray(rgb_frame)
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=80)
-        encoded_bytes.append(buffer.getvalue())
+    if not success:
+        raise ValueError("Failed to encode video frame.")
 
-    return encoded_bytes
+    return base64.b64encode(
+        encoded_image.tobytes()
+    ).decode("utf-8")
 
 
-def analyze_with_gemini(
+def analyze_with_fallback(
     frames: List[np.ndarray],
     mode: str,
+    reason: str = "Pose confidence was too low.",
 ) -> Dict[str, Any]:
     """
-    Fallback analysis service using Gemini multimodal vision capability.
-    Degrades to a standard fallback response if Gemini API is unconfigured or fails.
+    Return fallback analysis when MediaPipe cannot analyze the video
+    reliably.
+
+    When GEMINI_API_KEY is available, this function attempts a Gemini
+    vision request. Otherwise, it returns local recording guidance.
     """
     frame_count = len(frames)
-    api_key = os.environ.get("GEMINI_API_KEY")
 
-    # Guard clause: If no API key is available, return local fallback message immediately
-    if not api_key or not frames:
-        return _build_local_fallback_response(
-            mode=mode,
-            frame_count=frame_count,
-            reason="Gemini API key not configured or no frames provided."
-        )
+    local_feedback = (
+        "The movement could not be analyzed reliably because the "
+        "subject was not visible clearly enough in enough frames. "
+        "Please record a short full-body video with good lighting, "
+        "a steady camera, and the entire movement visible."
+    )
 
-    try:
-        # Initialize Gemini Client
-        client = genai.Client(api_key=api_key)
-
-        # Downsample and convert numpy array frames into JPEG byte buffers
-        image_bytes_list = _convert_frames_to_pil_bytes(frames, max_frames=12)
-
-        if not image_bytes_list:
-            return _build_local_fallback_response(
-                mode=mode,
-                frame_count=frame_count,
-                reason="Failed to convert video frames to valid images."
-            )
-
-        # Construct multimodal contents list
-        contents = []
-        for img_bytes in image_bytes_list:
-            contents.append(
-                types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg")
-            )
-
-        prompt = f"""
-        You are an expert sports biomechanics and movement safety assistant analyzing a sequence of video frames.
-        The movement mode is: '{mode}'.
-
-        Analyze the movement performed across these frames:
-        1. Identify any form errors, suboptimal movement patterns, or potential biomechanical issues.
-        2. Provide clear, actionable feedback for improvement.
-
-        Return your output strictly following this JSON structure:
-        - "issues": List of objects, each containing:
-            - "joint": string name of joint or body region (e.g., "knee", "spine", "shoulder")
-            - "issue": short description of error
-            - "value": optional observed metric or descriptive string
-            - "target": target recommendation or optimal range
-        - "feedback": Concise overview paragraph explaining the form analysis and recommendations.
-        """
-        contents.append(prompt)
-
-        # Define JSON output schema
-        response_schema = {
-            "type": "OBJECT",
-            "properties": {
-                "issues": {
-                    "type": "ARRAY",
-                    "items": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "joint": {"type": "STRING"},
-                            "issue": {"type": "STRING"},
-                            "value": {"type": "STRING"},
-                            "target": {"type": "STRING"}
-                        },
-                        "required": ["joint", "issue"]
-                    }
-                },
-                "feedback": {"type": "STRING"}
+    if not GEMINI_API_KEY or not frames:
+        return {
+            "mode": mode,
+            "used_fallback": True,
+            "issues": [],
+            "feedback": local_feedback,
+            "diagnostics": {
+                "frames_available": frame_count,
+                "reason": reason,
+                "fallback_provider": "local",
             },
-            "required": ["issues", "feedback"]
         }
 
-        # Request Gemini generation
-        response = client.models.generate_content(
-            model="gemini-3.5-flash",
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=response_schema,
-                temperature=0.2,
+    try:
+        # Use only a few frames to keep memory and request size low.
+        maximum_frames = 4
+
+        if frame_count <= maximum_frames:
+            selected_frames = frames
+        else:
+            selected_indices = np.linspace(
+                0,
+                frame_count - 1,
+                maximum_frames,
+                dtype=int,
             )
+
+            selected_frames = [
+                frames[index]
+                for index in selected_indices
+            ]
+
+        request_parts = [
+            {
+                "text": (
+                    f"Analyze this {mode} movement video. "
+                    "Describe visible posture or movement issues and "
+                    "provide short, practical improvement suggestions. "
+                    "Do not diagnose a medical condition."
+                )
+            }
+        ]
+
+        for frame in selected_frames:
+            request_parts.append(
+                {
+                    "inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": _encode_frame(frame),
+                    }
+                }
+            )
+
+        endpoint = (
+            "https://generativelanguage.googleapis.com/"
+            "v1beta/models/gemini-1.5-flash:generateContent"
+            f"?key={GEMINI_API_KEY}"
         )
 
-        parsed_data = json.loads(response.text)
+        response = requests.post(
+            endpoint,
+            json={
+                "contents": [
+                    {
+                        "parts": request_parts
+                    }
+                ]
+            },
+            timeout=45,
+        )
+
+        response.raise_for_status()
+        response_data = response.json()
+
+        feedback = (
+            response_data
+            .get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
+            .get("text")
+        )
+
+        if not feedback:
+            feedback = local_feedback
 
         return {
             "mode": mode,
             "used_fallback": True,
-            "issues": parsed_data.get("issues", []),
-            "feedback": parsed_data.get("feedback", "No detailed feedback generated."),
+            "issues": [],
+            "feedback": feedback,
             "diagnostics": {
                 "frames_available": frame_count,
-                "frames_analyzed": len(image_bytes_list),
-                "fallback_provider": "gemini-3.5-flash",
+                "frames_sent": len(selected_frames),
+                "reason": reason,
+                "fallback_provider": "gemini",
             },
         }
 
     except Exception as exc:
-        logger.warning(f"Gemini API analysis failed: {exc}. Falling back to standard message.")
-        return _build_local_fallback_response(
-            mode=mode,
-            frame_count=frame_count,
-            reason=f"Gemini service execution error: {str(exc)}"
+        print(
+            f"Gemini fallback failed: {repr(exc)}",
+            flush=True,
         )
 
+        return {
+            "mode": mode,
+            "used_fallback": True,
+            "issues": [],
+            "feedback": local_feedback,
+            "diagnostics": {
+                "frames_available": frame_count,
+                "reason": reason,
+                "fallback_provider": "local",
+                "fallback_error": str(exc),
+            },
+        }
 
-def _build_local_fallback_response(mode: str, frame_count: int, reason: str = "") -> Dict[str, Any]:
-    """
-    Standard deterministic fallback response when automated AI vision inference is unavailable.
-    """
-    return {
-        "mode": mode,
-        "used_fallback": True,
-        "issues": [],
-        "feedback": (
-            "The pose could not be detected reliably in enough video frames. "
-            "Please upload a clear, full-body video with a steady camera, good lighting, "
-            "and the entire movement visible."
-        ),
-        "diagnostics": {
-            "frames_available": frame_count,
-            "fallback_provider": "local_message",
-            "detail": reason,
-        },
-    }
+
+# Compatibility alias for any older code still using this name.
+def analyze_with_gemini(
+    frames: List[np.ndarray],
+    mode: str,
+) -> Dict[str, Any]:
+    return analyze_with_fallback(
+        frames=frames,
+        mode=mode,
+        reason="Pose confidence was too low.",
+    )
