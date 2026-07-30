@@ -2,11 +2,13 @@ import json
 import os
 from typing import Any, Callable, Dict, Optional
 
+import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from groq import Groq
+from pydantic import BaseModel
 
 from core.confidence import is_low_confidence
 from core.pose_service import extract_keypoints
@@ -20,12 +22,19 @@ FRONTEND_DIRECTORY = os.path.abspath(
     os.path.join(BASE_DIRECTORY, "../frontend")
 )
 
+QWEN_TTS_ENDPOINT = (
+    "https://dashscope-intl.aliyuncs.com/"
+    "api/v1/services/aigc/multimodal-generation/generation"
+)
+QWEN_TTS_MODEL = "qwen3-tts-flash"
+QWEN_TTS_VOICE = "Cherry"
+MAX_TTS_CHARACTERS = 1800
+
 app = FastAPI(
     title="AI Sports and Healthcare Tracker",
     version="1.0.0",
 )
 
-# Serve the frontend only when the directory exists.
 if os.path.isdir(FRONTEND_DIRECTORY):
     app.mount(
         "/static",
@@ -42,10 +51,11 @@ app.add_middleware(
 )
 
 
+class SpeechRequest(BaseModel):
+    text: str
+
+
 def get_groq_client() -> Optional[Groq]:
-    """
-    Create a Groq client only when an API key is configured.
-    """
     api_key = os.getenv("GROQ_API_KEY")
 
     if not api_key:
@@ -56,10 +66,6 @@ def get_groq_client() -> Optional[Groq]:
 
 @app.get("/")
 def serve_frontend():
-    """
-    Serve frontend/index.html when it exists.
-    Otherwise return a basic API status response.
-    """
     index_path = os.path.join(
         FRONTEND_DIRECTORY,
         "index.html",
@@ -76,28 +82,131 @@ def serve_frontend():
 
 @app.get("/health")
 def health_check():
-    """
-    Lightweight endpoint for Render health checks.
-    """
-    return {
-        "status": "healthy",
+    return {"status": "healthy"}
+
+
+@app.post("/text-to-speech")
+async def text_to_speech(request: SpeechRequest):
+    api_key = os.getenv("DASHSCOPE_API_KEY")
+
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Qwen text-to-speech is not configured. "
+                "Add DASHSCOPE_API_KEY in Render."
+            ),
+        )
+
+    text = request.text.strip()
+
+    if not text:
+        raise HTTPException(
+            status_code=400,
+            detail="No feedback text was provided.",
+        )
+
+    if len(text) > MAX_TTS_CHARACTERS:
+        text = text[:MAX_TTS_CHARACTERS].rsplit(" ", 1)[0] + "."
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
     }
+
+    payload = {
+        "model": QWEN_TTS_MODEL,
+        "input": {
+            "text": text,
+            "voice": QWEN_TTS_VOICE,
+            "language_type": "English",
+        },
+    }
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(90.0),
+            follow_redirects=True,
+        ) as client:
+            qwen_response = await client.post(
+                QWEN_TTS_ENDPOINT,
+                headers=headers,
+                json=payload,
+            )
+
+            if qwen_response.status_code >= 400:
+                print(
+                    "Qwen TTS request failed: "
+                    f"{qwen_response.status_code} {qwen_response.text}",
+                    flush=True,
+                )
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        "Qwen could not generate the voice. "
+                        "Check the Render API key and its region."
+                    ),
+                )
+
+            response_data = qwen_response.json()
+            audio_url = (
+                response_data
+                .get("output", {})
+                .get("audio", {})
+                .get("url")
+            )
+
+            if not audio_url:
+                print(
+                    f"Qwen TTS returned no audio URL: {response_data}",
+                    flush=True,
+                )
+                raise HTTPException(
+                    status_code=502,
+                    detail="Qwen did not return an audio file.",
+                )
+
+            audio_response = await client.get(audio_url)
+
+            if audio_response.status_code >= 400:
+                raise HTTPException(
+                    status_code=502,
+                    detail="The generated Qwen audio could not be downloaded.",
+                )
+
+            media_type = (
+                audio_response.headers
+                .get("content-type", "audio/wav")
+                .split(";")[0]
+            )
+
+            return Response(
+                content=audio_response.content,
+                media_type=media_type,
+                headers={"Cache-Control": "no-store"},
+            )
+
+    except HTTPException:
+        raise
+    except httpx.TimeoutException as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="Qwen voice generation timed out. Please try again.",
+        ) from exc
+    except Exception as exc:
+        print(f"Unexpected Qwen TTS error: {repr(exc)}", flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Text-to-speech failed unexpectedly.",
+        ) from exc
 
 
 def translate_to_natural_language(
     data: Dict[str, Any],
     mode: str,
 ) -> str:
-    """
-    Convert structured analysis data into readable coaching advice.
-
-    If Groq is unavailable, return the analysis module's own feedback.
-    """
     fallback_feedback = str(
-        data.get(
-            "feedback",
-            "Analysis completed.",
-        )
+        data.get("feedback", "Analysis completed.")
     )
 
     client = get_groq_client()
@@ -127,12 +236,7 @@ Requirements:
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
         )
 
@@ -142,10 +246,7 @@ Requirements:
             return generated_text
 
     except Exception as exc:
-        print(
-            f"Groq translation failed: {exc}",
-            flush=True,
-        )
+        print(f"Groq translation failed: {exc}", flush=True)
 
     return fallback_feedback
 
@@ -155,20 +256,11 @@ def build_response(
     mode: str,
     used_fallback: bool,
 ) -> Dict[str, Any]:
-    """
-    Always return the same response structure.
-
-    This prevents the frontend from receiving undefined fields.
-    """
     normalized_result = dict(result)
-
     normalized_result["mode"] = mode
     normalized_result["used_fallback"] = used_fallback
     normalized_result.setdefault("issues", [])
-    normalized_result.setdefault(
-        "feedback",
-        "Analysis completed.",
-    )
+    normalized_result.setdefault("feedback", "Analysis completed.")
 
     return {
         "used_fallback": used_fallback,
@@ -185,15 +277,9 @@ async def analyze(
     mode: str,
     video: UploadFile = File(...),
 ):
-    """
-    Analyze an uploaded movement video.
-    """
     normalized_mode = mode.strip().lower()
 
-    analyzers: Dict[
-        str,
-        Callable[[list], Dict[str, Any]],
-    ] = {
+    analyzers: Dict[str, Callable[[list], Dict[str, Any]]] = {
         "health": health_analysis.run,
         "sprint": sprint_analysis.run,
         "tennis": tennis_analysis.run,
@@ -209,7 +295,6 @@ async def analyze(
         )
 
     filename = video.filename or ""
-
     print(
         f"Starting {normalized_mode} analysis for {filename}",
         flush=True,
@@ -229,14 +314,12 @@ async def analyze(
             flush=True,
         )
 
-        # Keep memory usage low on Render.
         frames = process_video(
             contents,
             target_fps=3,
             target_height=256,
             max_frames=40,
         )
-
         del contents
 
         if not frames:
@@ -249,16 +332,9 @@ async def analyze(
             )
 
         frame_count = len(frames)
-
-        print(
-            f"Frames extracted: {frame_count}",
-            flush=True,
-        )
+        print(f"Frames extracted: {frame_count}", flush=True)
 
         keypoints = extract_keypoints(frames)
-
-        # The current fallback does not inspect frame pixels,
-        # so release the images immediately.
         del frames
 
         if not keypoints:
@@ -267,22 +343,16 @@ async def analyze(
                 mode=normalized_mode,
                 reason="No pose data was returned.",
             )
-
             return build_response(
                 fallback_result,
                 normalized_mode,
                 used_fallback=True,
             )
 
-        detected_frame_count = sum(
-            1 for frame in keypoints if frame
-        )
-
+        detected_frame_count = sum(1 for frame in keypoints if frame)
         print(
-            (
-                f"Pose detected in {detected_frame_count} "
-                f"of {len(keypoints)} frames"
-            ),
+            f"Pose detected in {detected_frame_count} "
+            f"of {len(keypoints)} frames",
             flush=True,
         )
 
@@ -292,7 +362,6 @@ async def analyze(
                 mode=normalized_mode,
                 reason="No full-body pose was detected.",
             )
-
             return build_response(
                 fallback_result,
                 normalized_mode,
@@ -308,7 +377,6 @@ async def analyze(
                     "for reliable angle analysis."
                 ),
             )
-
             return build_response(
                 fallback_result,
                 normalized_mode,
@@ -318,10 +386,7 @@ async def analyze(
         analysis_function = analyzers[normalized_mode]
         result = analysis_function(keypoints)
 
-        print(
-            f"{normalized_mode} analysis completed",
-            flush=True,
-        )
+        print(f"{normalized_mode} analysis completed", flush=True)
 
         return build_response(
             result,
@@ -331,17 +396,11 @@ async def analyze(
 
     except HTTPException:
         raise
-
     except Exception as exc:
-        print(
-            f"Unexpected analysis error: {repr(exc)}",
-            flush=True,
-        )
-
+        print(f"Unexpected analysis error: {repr(exc)}", flush=True)
         raise HTTPException(
             status_code=500,
             detail=f"Analysis failed: {exc}",
         ) from exc
-
     finally:
         await video.close()

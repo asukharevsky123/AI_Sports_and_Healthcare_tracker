@@ -737,373 +737,224 @@
 </footer>
 
 <script>
-    const fileInput =
-        document.getElementById("fileInput");
-
-    const preview =
-        document.getElementById("preview");
-
-    const resultsContainer =
-        document.getElementById("resultsContainer");
-
-    const analyzeButton =
-        document.getElementById("analyzeButton");
-
-    const speechButton =
-        document.getElementById("speechButton");
-
-    const speechButtonText =
-        document.getElementById("speechButtonText");
-
-    const speechIcon =
-        document.getElementById("speechIcon");
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("preview");
+    const resultsContainer = document.getElementById("resultsContainer");
+    const analyzeButton = document.getElementById("analyzeButton");
+    const speechButton = document.getElementById("speechButton");
+    const speechButtonText = document.getElementById("speechButtonText");
+    const speechIcon = document.getElementById("speechIcon");
 
     let previewUrl = null;
-    let activeSpeech = null;
+    let activeAudio = null;
+    let activeAudioUrl = null;
 
+    fileInput.addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        stopSpeech();
+        speechButton.classList.add("hidden");
+        speechButton.classList.remove("flex");
 
-    fileInput.addEventListener(
-        "change",
-        function (event) {
-            const file = event.target.files[0];
-
-            stopSpeech();
-
-            speechButton.classList.add("hidden");
-            speechButton.classList.remove("flex");
-
-            if (!file) {
-                preview.style.display = "none";
-                return;
-            }
-
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-
-            previewUrl = URL.createObjectURL(file);
-
-            preview.src = previewUrl;
-            preview.style.display = "block";
-
-            preview.scrollIntoView({
-                behavior: "smooth",
-                block: "center"
-            });
+        if (!file) {
+            preview.style.display = "none";
+            return;
         }
-    );
 
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = URL.createObjectURL(file);
+        preview.src = previewUrl;
+        preview.style.display = "block";
+        preview.scrollIntoView({behavior: "smooth", block: "center"});
+    });
 
     function getFeedbackText() {
-        const nlOutput =
-            document.getElementById("nlOutput");
-
-        return nlOutput.innerText
+        return document.getElementById("nlOutput").innerText
             .replace(/\s+/g, " ")
             .trim();
     }
 
-
     function resetSpeechButton() {
-        activeSpeech = null;
-
+        speechButton.disabled = false;
         speechButtonText.textContent = "Listen";
         speechIcon.textContent = "volume_up";
     }
 
+    function releaseAudio() {
+        if (activeAudio) {
+            activeAudio.pause();
+            activeAudio.src = "";
+            activeAudio = null;
+        }
+        if (activeAudioUrl) {
+            URL.revokeObjectURL(activeAudioUrl);
+            activeAudioUrl = null;
+        }
+    }
 
     function stopSpeech() {
-        if ("speechSynthesis" in window) {
-            window.speechSynthesis.cancel();
-        }
-
+        releaseAudio();
         resetSpeechButton();
     }
 
-
-    function chooseEnglishVoice() {
-        const voices =
-            window.speechSynthesis.getVoices();
-
-        return (
-            voices.find(
-                (voice) =>
-                    voice.lang === "en-US" &&
-                    voice.localService
-            ) ||
-            voices.find(
-                (voice) =>
-                    voice.lang === "en-US"
-            ) ||
-            voices.find(
-                (voice) =>
-                    voice.lang.startsWith("en")
-            ) ||
-            null
-        );
-    }
-
-
-    function toggleSpeech() {
-        if (!("speechSynthesis" in window)) {
-            alert(
-                "Text-to-speech is not supported by this browser."
-            );
-
-            return;
-        }
-
-        if (
-            window.speechSynthesis.speaking &&
-            !window.speechSynthesis.paused
-        ) {
-            window.speechSynthesis.pause();
-
+    async function toggleSpeech() {
+        if (activeAudio && !activeAudio.paused && !activeAudio.ended) {
+            activeAudio.pause();
             speechButtonText.textContent = "Resume";
             speechIcon.textContent = "play_arrow";
-
             return;
         }
 
-        if (
-            window.speechSynthesis.speaking &&
-            window.speechSynthesis.paused
-        ) {
-            window.speechSynthesis.resume();
-
+        if (activeAudio && activeAudio.paused && !activeAudio.ended) {
+            await activeAudio.play();
             speechButtonText.textContent = "Pause";
             speechIcon.textContent = "pause";
-
             return;
         }
 
         const feedbackText = getFeedbackText();
-
         if (!feedbackText) {
             alert("There is no feedback to read yet.");
             return;
         }
 
         stopSpeech();
+        speechButton.disabled = true;
+        speechButtonText.textContent = "Creating voice...";
+        speechIcon.textContent = "sync";
 
-        activeSpeech =
-            new SpeechSynthesisUtterance(feedbackText);
+        try {
+            const response = await fetch("/text-to-speech", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text: feedbackText})
+            });
 
-        activeSpeech.lang = "en-US";
-        activeSpeech.rate = 0.95;
-        activeSpeech.pitch = 1;
-        activeSpeech.volume = 1;
-
-        const selectedVoice =
-            chooseEnglishVoice();
-
-        if (selectedVoice) {
-            activeSpeech.voice = selectedVoice;
-        }
-
-        activeSpeech.onstart = function () {
-            speechButtonText.textContent = "Pause";
-            speechIcon.textContent = "pause";
-        };
-
-        activeSpeech.onend = function () {
-            resetSpeechButton();
-        };
-
-        activeSpeech.onerror = function (event) {
-            if (event.error !== "canceled") {
-                console.error(
-                    "Text-to-speech error:",
-                    event.error
-                );
+            const contentType = response.headers.get("content-type") || "";
+            if (!response.ok) {
+                let message = "The realistic voice could not be generated.";
+                if (contentType.includes("application/json")) {
+                    const errorData = await response.json();
+                    message = errorData.detail || errorData.message || message;
+                } else {
+                    const errorText = await response.text();
+                    if (errorText) message = errorText;
+                }
+                throw new Error(message);
             }
 
+            const audioBlob = await response.blob();
+            if (!audioBlob.size) {
+                throw new Error("The server returned an empty audio file.");
+            }
+
+            activeAudioUrl = URL.createObjectURL(audioBlob);
+            activeAudio = new Audio(activeAudioUrl);
+            activeAudio.preload = "auto";
+
+            activeAudio.onplay = function () {
+                speechButton.disabled = false;
+                speechButtonText.textContent = "Pause";
+                speechIcon.textContent = "pause";
+            };
+
+            activeAudio.onpause = function () {
+                if (activeAudio && !activeAudio.ended) {
+                    speechButtonText.textContent = "Resume";
+                    speechIcon.textContent = "play_arrow";
+                }
+            };
+
+            activeAudio.onended = function () {
+                releaseAudio();
+                resetSpeechButton();
+            };
+
+            activeAudio.onerror = function () {
+                releaseAudio();
+                resetSpeechButton();
+                alert("The generated audio could not be played.");
+            };
+
+            await activeAudio.play();
+        } catch (error) {
+            releaseAudio();
             resetSpeechButton();
-        };
-
-        window.speechSynthesis.speak(activeSpeech);
+            console.error("Qwen text-to-speech error:", error);
+            alert(error instanceof Error ? error.message : String(error));
+        }
     }
-
 
     async function analyze() {
         stopSpeech();
-
         speechButton.classList.add("hidden");
         speechButton.classList.remove("flex");
 
-        const mode =
-            document.getElementById("mode").value;
-
-        const nlOutput =
-            document.getElementById("nlOutput");
-
-        const jsonOutput =
-            document.getElementById("jsonOutput");
-
-        const selectedFile =
-            fileInput.files[0];
+        const mode = document.getElementById("mode").value;
+        const nlOutput = document.getElementById("nlOutput");
+        const jsonOutput = document.getElementById("jsonOutput");
+        const selectedFile = fileInput.files[0];
 
         if (!selectedFile) {
             alert("Please select a file first.");
             return;
         }
 
-        const maximumFileSize =
-            100 * 1024 * 1024;
-
+        const maximumFileSize = 100 * 1024 * 1024;
         if (selectedFile.size > maximumFileSize) {
-            alert(
-                "The video is larger than 100 MB. " +
-                "Please upload a shorter or smaller video."
-            );
-
+            alert("The video is larger than 100 MB. Please upload a shorter or smaller video.");
             return;
         }
 
-        const originalButtonHtml =
-            analyzeButton.innerHTML;
-
+        const originalButtonHtml = analyzeButton.innerHTML;
         analyzeButton.disabled = true;
-
-        analyzeButton.classList.add(
-            "opacity-60",
-            "cursor-not-allowed"
-        );
-
-        analyzeButton.innerHTML =
-            '<span class="material-symbols-outlined animate-spin">' +
-            "sync" +
-            "</span> Analyzing...";
-
+        analyzeButton.classList.add("opacity-60", "cursor-not-allowed");
+        analyzeButton.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Analyzing...';
         resultsContainer.classList.remove("hidden");
-
-        nlOutput.innerHTML =
-            '<div class="flex items-center gap-3 ' +
-            'text-primary animate-pulse">' +
-            '<span class="material-symbols-outlined ' +
-            'animate-spin">sync</span>' +
-            "Processing motion vectors..." +
-            "</div>";
-
+        nlOutput.innerHTML = '<div class="flex items-center gap-3 text-primary animate-pulse"><span class="material-symbols-outlined animate-spin">sync</span>Processing motion vectors...</div>';
         jsonOutput.innerText = "";
 
         const formData = new FormData();
-
-        formData.append(
-            "video",
-            selectedFile,
-            selectedFile.name
-        );
+        formData.append("video", selectedFile, selectedFile.name);
 
         try {
-            const response = await fetch(
-                `/analyze?mode=${encodeURIComponent(mode)}`,
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
+            const response = await fetch(`/analyze?mode=${encodeURIComponent(mode)}`, {
+                method: "POST",
+                body: formData
+            });
 
-            const rawResponse =
-                await response.text();
-
+            const rawResponse = await response.text();
             let data = {};
-
             if (rawResponse) {
-                try {
-                    data = JSON.parse(rawResponse);
-                } catch {
-                    data = {
-                        detail: rawResponse
-                    };
-                }
+                try { data = JSON.parse(rawResponse); }
+                catch { data = {detail: rawResponse}; }
             }
 
             if (!response.ok) {
-                throw new Error(
-                    data.detail ||
-                    data.message ||
-                    `Server returned ${response.status} ${response.statusText}`
-                );
+                throw new Error(data.detail || data.message || `Server returned ${response.status} ${response.statusText}`);
             }
 
-            const analysisData =
-                data.json ?? data;
-
-            const naturalLanguage =
-                data.natural_language ??
-                analysisData.feedback ??
-                "No feedback generated.";
-
-            nlOutput.innerHTML =
-                marked.parse(
-                    String(naturalLanguage)
-                );
-
-            jsonOutput.innerText =
-                JSON.stringify(
-                    analysisData,
-                    null,
-                    2
-                );
-
+            const analysisData = data.json ?? data;
+            const naturalLanguage = data.natural_language ?? analysisData.feedback ?? "No feedback generated.";
+            nlOutput.innerHTML = marked.parse(String(naturalLanguage));
+            jsonOutput.innerText = JSON.stringify(analysisData, null, 2);
             speechButton.classList.remove("hidden");
             speechButton.classList.add("flex");
-
-            resultsContainer.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-
+            resultsContainer.scrollIntoView({behavior: "smooth", block: "start"});
         } catch (error) {
             stopSpeech();
-
             speechButton.classList.add("hidden");
             speechButton.classList.remove("flex");
-
-            console.error(
-                "Full analysis error:",
-                error
-            );
-
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : String(error);
-
-            nlOutput.innerHTML =
-                '<div class="text-error space-y-2">' +
-                '<p class="font-semibold">Analysis failed</p>' +
-                `<p>${escapeHtml(message)}</p>` +
-                "</div>";
-
-            jsonOutput.innerText =
-                JSON.stringify(
-                    {
-                        error: message
-                    },
-                    null,
-                    2
-                );
-
-            resultsContainer.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-
+            console.error("Full analysis error:", error);
+            const message = error instanceof Error ? error.message : String(error);
+            nlOutput.innerHTML = '<div class="text-error space-y-2"><p class="font-semibold">Analysis failed</p><p>' + escapeHtml(message) + '</p></div>';
+            jsonOutput.innerText = JSON.stringify({error: message}, null, 2);
+            resultsContainer.scrollIntoView({behavior: "smooth", block: "start"});
         } finally {
             analyzeButton.disabled = false;
-
-            analyzeButton.classList.remove(
-                "opacity-60",
-                "cursor-not-allowed"
-            );
-
-            analyzeButton.innerHTML =
-                originalButtonHtml;
+            analyzeButton.classList.remove("opacity-60", "cursor-not-allowed");
+            analyzeButton.innerHTML = originalButtonHtml;
         }
     }
-
 
     function escapeHtml(value) {
         return String(value)
@@ -1114,17 +965,10 @@
             .replaceAll("'", "&#039;");
     }
 
-
-    window.addEventListener(
-        "beforeunload",
-        function () {
-            stopSpeech();
-
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        }
-    );
+    window.addEventListener("beforeunload", function () {
+        stopSpeech();
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+    });
 </script>
 
 </body>
